@@ -385,3 +385,17 @@ app.post("/location/push", (req, res) => {
 app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}`);
 });
+
+// "dependencies": {
+//   "axios": "^0.21.4",
+//   "body-parser": "^1.19.0",
+//   "cors": "^2.8.5",
+//   "dotenv": "^10.0.0",
+//   "ejs": "^3.1.6",
+//   "express": "^4.17.1",
+//   "mongoose": "^6.0.5",
+//   "multer": "^1.4.3",
+//   "react-loader-spinner": "^4.0.0",
+//   "react-native-loader": "^1.3.1",
+//   "validator": "^13.6.0"
+// },
