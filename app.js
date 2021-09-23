@@ -145,6 +145,15 @@ app.post("/driver/ride/create", (req, res) => {
     Direction: "Destination",
     Completed: false,
   };
+  ride.deleteMany({}, (err, data) => {
+    if (err) return;
+  });
+  ride_request.deleteMany({}, (err, data) => {
+    if (err) return;
+  });
+  ride_request_approved.deleteMany({}, (err, data) => {
+    if (err) return;
+  });
   ride.create(body, (err, data) => {
     if (err) res.status(500).send(err);
     else res.status(201).send(data);
@@ -195,12 +204,40 @@ app.post("/rider/get/data", (req, res) => {
     }
   );
 });
+app.post("/driver/get/data", (req, res) => {
+  const body = req.body;
+  driver.find(
+    {
+      _id: body.DRIVER_ID,
+    },
+    (err, values) => {
+      if (err) res.status(500).send(err);
+      else res.status(200).send(values);
+    }
+  );
+});
 app.post("/ride/request", (req, res) => {
   const body = req.body;
   ride_request.create(
     {
       Ride: body.RIDE_ID,
       Rider: body.RIDER_ID,
+      PickupLocation: body.PickupLocation,
+    },
+    (err, values) => {
+      if (err) res.status(500).send(err);
+      else res.status(200).send(values);
+    }
+  );
+});
+
+app.post("/ride/get/request", (req, res) => {
+  const body = req.body;
+  // res.status(200).send("reached");
+  // return;
+  ride_request.findOne(
+    {
+      RIDE_ID: body.RIDE_ID,
     },
     (err, values) => {
       if (err) res.status(500).send(err);
@@ -259,11 +296,21 @@ app.post("/ride/request/approve", (req, res) => {
   ride_request_approved.create(
     {
       Ride: body.RIDE_ID,
-      Rider: RIDER_ID,
+      Rider: body.RIDER_ID,
     },
     (err, values) => {
       if (err) res.status(500).send(err);
-      else res.status(200).send(values);
+      else {
+        rider.findOne(
+          {
+            _id: body.RIDER_ID,
+          },
+          (err, __values) => {
+            if (err) res.status(500).send(err);
+            else res.status(200).send(__values);
+          }
+        );
+      }
     }
   );
 });
@@ -274,6 +321,23 @@ app.post("/ride/get/data", (req, res) => {
   ride.find(
     {
       _id: body.RIDE_ID,
+    },
+    (err, values) => {
+      if (err) res.status(500).send(err);
+      else res.status(200).send(values);
+    }
+  );
+});
+app.post("/ride/action/complete", (req, res) => {
+  const body = req.body;
+  // res.status(200).send(body);
+  // return;
+  ride.update(
+    {
+      _id: body.RIDE_ID,
+    },
+    {
+      "Ride.Completed": true,
     },
     (err, values) => {
       if (err) res.status(500).send(err);
@@ -307,42 +371,45 @@ app.post("/ride/request/status", (req, res) => {
             Ride: body.RIDE_ID,
             Rider: body.RIDER_ID,
           },
-          // (err2, values2) => {
-          //   ride_request_approved.deleteOne(
-          //     {
-          //       RIDE_ID: body.RIDE_ID,
-          //       RIDER_ID: body.RIDER_ID,
-          //     },
-          (err3, values3) => {
-            // res.status(200).send({ approved, _RIDE: true });
-            if (err3) res.status(500).send(err);
-            else res.status(200).send(approved);
-            return;
-            // Get Ride Info
-            ride.find({ _id: body.RIDE_ID }, (err4, values4) => {
-              _RIDE = values4;
-              // Get Driver Info
-              driver.findOne({ _id: _RIDE.Driver_id }, (err5, values5) => {
-                _RIDE.Driver = values5;
-                // now get riders info
-                _RIDE.Rider.Alpha = body.RIDER_ID;
-                rider.findOne({ _id: _RIDE.Rider.Alpha }, (err6, values6) => {
-                  // check if rider 2 has a id
-                  _RIDE.Rider.Alpha = values6;
-                  if (_RIDE.Rider.Beta != "") {
+          (err2, values2) => {
+            ride_request_approved.create(
+              {
+                RIDE_ID: body.RIDE_ID,
+                RIDER_ID: body.RIDER_ID,
+              },
+              (err3, values3) => {
+                // res.status(200).send({ approved, _RIDE: true });
+                if (err3) res.status(500).send(err);
+                else res.status(200).send(approved);
+                return;
+                // Get Ride Info
+                ride.find({ _id: body.RIDE_ID }, (err4, values4) => {
+                  _RIDE = values4;
+                  // Get Driver Info
+                  driver.findOne({ _id: _RIDE.Driver_id }, (err5, values5) => {
+                    _RIDE.Driver = values5;
+                    // now get riders info
+                    _RIDE.Rider.Alpha = body.RIDER_ID;
                     rider.findOne(
                       { _id: _RIDE.Rider.Alpha },
-                      (err7, values7) => {
-                        _RIDE.Rider.Beta = values7;
+                      (err6, values6) => {
+                        // check if rider 2 has a id
+                        _RIDE.Rider.Alpha = values6;
+                        if (_RIDE.Rider.Beta != "") {
+                          rider.findOne(
+                            { _id: _RIDE.Rider.Alpha },
+                            (err7, values7) => {
+                              _RIDE.Rider.Beta = values7;
+                            }
+                          );
+                        }
                       }
                     );
-                  }
+                  });
                 });
-              });
-            });
+              }
+            );
           }
-          //   );
-          // }
         );
       } else res.status(200).send(approved);
 
@@ -375,6 +442,37 @@ app.post("/location/push", (req, res) => {
     (err, values) => {
       if (err) res.status(500).send(err);
       // else res.status(200).send(values);
+    }
+  );
+});
+
+app.post("/driver/history", (req, res) => {
+  const body = req.body;
+  // res.status(200).send(body);
+  // return;
+  ride.find(
+    {
+      Driver: body.Driver_id,
+      // Completed: true,
+    },
+    (err, values) => {
+      if (err) res.status(500).send(err);
+      else res.status(200).send(values);
+    }
+  );
+});
+app.post("/rider/history", (req, res) => {
+  const body = req.body;
+  // res.status(200).send(body);
+  // return;
+  ride.find(
+    {
+      "Rider.Alpha": body.Rider_id,
+      "Rider.Beta": body.Rider_id,
+    },
+    (err, values) => {
+      if (err) res.status(500).send(err);
+      else res.status(200).send(values);
     }
   );
 });
