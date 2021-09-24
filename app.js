@@ -5,6 +5,7 @@
 
 import express from "express";
 import mongoose from "mongoose";
+import cors from "cors";
 // Schemas
 import driver_register_request from "./schemas/driver_register_request.js";
 import rider from "./schemas/rider.js";
@@ -23,7 +24,9 @@ const app = express();
 //   })
 // );
 
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
+app.use(cors());
 const port = process.env.port || 3000;
 const connection_url =
   "mongodb+srv://amdin:y79LY2ki1qXe2uWB@ridesharing.jyyee.mongodb.net/RideSharing?retryWrites=true&w=majority";
@@ -84,16 +87,128 @@ app.get("/rider", (req, res) => {
   });
 });
 
+app.get("/driver", (req, res) => {
+  driver.find((err, values) => {
+    if (err) res.status(500).send(err);
+    else res.status(200).send(values);
+  });
+});
+
+app.get("/driver/requests", (req, res) => {
+  driver_register_request.find((err, values) => {
+    if (err) res.status(500).send(err);
+    else res.status(200).send(values);
+  });
+});
+app.post("/driver/request/approve", (req, res) => {
+  const body = req.body;
+  driver_register_request.find(
+    { _id: body.id },
+    { IdentityCard: 0, CarDocuments: 0, DrivingLicense: 0 },
+    (err, values) => {
+      if (err) res.status(500).send(err);
+      else {
+        driver.create(
+          {
+            Name: values.Name,
+            Email: values.Email,
+            Mobile: values.Mobile,
+            Vehiclemodel: values.Vehiclemodel,
+            Vehiclenumber: values.Vehiclenumber,
+            Password: values.Password,
+          },
+          (err2, values2) => {
+            if (err2) res.status(500).send(err2);
+            else {
+              driver_register_request.deleteOne(
+                { _id: values._id },
+                (err3, values3) => {
+                  if (err3) res.status(500).send(err3);
+                  else res.status(200).send("ok");
+                }
+              );
+            }
+          }
+        );
+      }
+    }
+  );
+  // else res.status(200).send(values);
+});
+app.post("/driver/request/reject", (req, res) => {
+  const body = req.body;
+  driver_register_request.deleteOne({ _id: body.id }, (err, values) => {
+    if (err) res.status(500).send(err);
+    else res.status(200).send(values);
+  });
+});
+
+app.get("/dashboard", (req, res) => {
+  let rider_count = 0,
+    driver_count = 0,
+    driver_request_count = 0;
+
+  rider.find((err, values) => {
+    if (err) res.status(500).send(err);
+    else {
+      rider_count = values.length;
+      driver.find((err2, values2) => {
+        if (err2) res.status(500).send(err2);
+        else {
+          driver_count = values2.length;
+          driver_register_request.find((err3, values3) => {
+            if (err3) res.status(500).send(err3);
+            else {
+              driver_request_count = values3.length;
+              res.status(200).send({
+                rider_count,
+                driver_count,
+                driver_request_count,
+              });
+            }
+          });
+        }
+      });
+    }
+  });
+});
+
 // -----
 // Rider
 // -----
 app.post("/driver/register", (req, res) => {
   const body = req.body;
 
-  driver_register_request.create(body, (err, data) => {
-    if (err) res.status(500).send(err);
-    else res.status(201).send(data);
-  });
+  // res.status(201).send({
+  //   Name: body.Name,
+  //   Email: body.Email,
+  //   Mobile: body.Mobile,
+  //   Vehiclemodel: body.Vehiclemodel,
+  //   Vehiclenumber: body.Vehiclenumber,
+  //   Password: body.Password,
+  //   IdentityCard: body.IdentityCard.length,
+  //   CarDocuments: body.CarDocuments.length,
+  //   DrivingLicense: body.DrivingLicense.length,
+  // });
+  // return;
+
+  driver_register_request.create(
+    {
+      Name: body.Name,
+      Email: body.Email,
+      Mobile: body.Mobile,
+      Vehiclemodel: body.Vehiclemodel,
+      Vehiclenumber: body.Vehiclenumber,
+      Password: body.Password,
+      IdentityCard: body.IdentityCard,
+      CarDocuments: body.CarDocuments,
+      DrivingLicense: body.DrivingLicense,
+    },
+    (err, data) => {
+      if (err) res.status(500).send(err);
+      else res.status(201).send("ok");
+    }
+  );
 });
 app.post("/driver/authorization", (req, res) => {
   const body = req.body;
@@ -301,15 +416,27 @@ app.post("/ride/request/approve", (req, res) => {
     (err, values) => {
       if (err) res.status(500).send(err);
       else {
-        rider.findOne(
-          {
-            _id: body.RIDER_ID,
-          },
-          (err, __values) => {
-            if (err) res.status(500).send(err);
-            else res.status(200).send(__values);
-          }
-        );
+        ride.find({ _id: body.RIDE_ID }, (err2, ride_info) => {
+          ride.updateOne(
+            { _id: body.RIDE_ID },
+            ride_info[0].Rider.Alpha == ""
+              ? { "Rider.Alpha": body.RIDER_ID }
+              : { "Rider.Beta": body.RIDER_ID },
+            (err3, values3) => {
+              rider.findOne(
+                {
+                  _id: body.RIDER_ID,
+                },
+                (err4, values4) => {
+                  res.status(200).send(values4);
+                  // ride.findOne({ _id: body.RIDE_ID }, (err6, values6) => {
+                  //   res.status(200).send(values6);
+                  // });
+                }
+              );
+            }
+          );
+        });
       }
     }
   );
