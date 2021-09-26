@@ -102,9 +102,15 @@ app.get("/driver/requests", (req, res) => {
 });
 app.post("/driver/request/approve", (req, res) => {
   const body = req.body;
-  driver_register_request.find({ _id: body.id }, (err, values) => {
-    if (err) res.status(500).send(err);
-    else {
+  driver_register_request.find(
+    { _id: body.id },
+    { CarDocuments: 0, DrivingLicense: 0, IdentityCard: 0 },
+    (err, values) => {
+      // if (err) res.status(500).send(err);
+      // else {
+      values = values[0];
+      // res.status(200).send(values);
+      // return;
       driver.create(
         {
           Name: values.Name,
@@ -127,8 +133,9 @@ app.post("/driver/request/approve", (req, res) => {
           }
         }
       );
+      // }
     }
-  });
+  );
   // else res.status(200).send(values);
 });
 app.post("/driver/request/reject", (req, res) => {
