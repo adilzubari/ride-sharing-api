@@ -102,37 +102,33 @@ app.get("/driver/requests", (req, res) => {
 });
 app.post("/driver/request/approve", (req, res) => {
   const body = req.body;
-  driver_register_request.find(
-    { _id: body.id },
-    { IdentityCard: 0, CarDocuments: 0, DrivingLicense: 0 },
-    (err, values) => {
-      if (err) res.status(500).send(err);
-      else {
-        driver.create(
-          {
-            Name: values.Name,
-            Email: values.Email,
-            Mobile: values.Mobile,
-            Vehiclemodel: values.Vehiclemodel,
-            Vehiclenumber: values.Vehiclenumber,
-            Password: values.Password,
-          },
-          (err2, values2) => {
-            if (err2) res.status(500).send(err2);
-            else {
-              driver_register_request.deleteOne(
-                { _id: values._id },
-                (err3, values3) => {
-                  if (err3) res.status(500).send(err3);
-                  else res.status(200).send("ok");
-                }
-              );
-            }
+  driver_register_request.find({ _id: body.id }, (err, values) => {
+    if (err) res.status(500).send(err);
+    else {
+      driver.create(
+        {
+          Name: values.Name,
+          Email: values.Email,
+          Mobile: values.Mobile,
+          Vehiclemodel: values.Vehiclemodel,
+          Vehiclenumber: values.Vehiclenumber,
+          Password: values.Password,
+        },
+        (err2, values2) => {
+          if (err2) res.status(500).send(err2);
+          else {
+            driver_register_request.deleteOne(
+              { _id: values._id },
+              (err3, values3) => {
+                if (err3) res.status(500).send(err3);
+                else res.status(200).send("ok");
+              }
+            );
           }
-        );
-      }
+        }
+      );
     }
-  );
+  });
   // else res.status(200).send(values);
 });
 app.post("/driver/request/reject", (req, res) => {
