@@ -600,12 +600,12 @@ app.post("/rider/history", (req, res) => {
   );
 });
 
-exports.app = functions.https.onRequest(app);
+// exports.app = functions.https.onRequest(app);
 
-Listener;
-app.listen(port, () => {
-  console.log(`Listening at http://localhost:${port}`);
-});
+// Listener;
+// app.listen(port, () => {
+//   console.log(`Listening at http://localhost:${port}`);
+// });
 app.listen(process.env.PORT || 3000, function () {
   console.log(
     "Express server listening on port %d in %s mode",
